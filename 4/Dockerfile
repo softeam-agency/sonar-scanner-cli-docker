@@ -1,4 +1,6 @@
-FROM alpine:3.14
+FROM alpine:3.17
+
+LABEL org.opencontainers.image.url=https://github.com/SonarSource/sonar-scanner-cli-docker
 
 ARG SONAR_SCANNER_HOME=/opt/sonar-scanner
 ARG SONAR_SCANNER_VERSION
@@ -9,7 +11,7 @@ ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
     XDG_CONFIG_HOME=/tmp \
     SONAR_SCANNER_HOME=${SONAR_SCANNER_HOME} \
     SONAR_USER_HOME=${SONAR_SCANNER_HOME}/.sonar \
-    PATH=/opt/java/openjdk/bin:${SONAR_SCANNER_HOME}/bin:${PATH} \
+    PATH=${SONAR_SCANNER_HOME}/bin:${PATH} \
     NODE_PATH=/usr/lib/node_modules \
     SRC_PATH=/usr/src \
     LANG=en_US.UTF-8 \
@@ -21,15 +23,12 @@ RUN set -eux; \
     addgroup -S -g ${GID} scanner-cli; \
     adduser -S -D -u ${UID} -G scanner-cli scanner-cli; \
     apk add --no-cache --virtual build-dependencies wget unzip gnupg; \
-    apk add --no-cache git python3 py-pip bash shellcheck 'nodejs>12' 'npm>7' openjdk11-jre curl musl-locales musl-locales-lang; \
+    apk add --no-cache git python3 py-pip bash shellcheck 'nodejs>12' openjdk11-jre curl musl-locales musl-locales-lang; \
     wget -U "scannercli" -q -O /opt/sonar-scanner-cli.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}.zip; \
     wget -U "scannercli" -q -O /opt/sonar-scanner-cli.zip.asc https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}.zip.asc; \
-    for server in $(shuf -e ha.pool.sks-keyservers.net \
-                        hkp://p80.pool.sks-keyservers.net:80 \
-                        keyserver.ubuntu.com \
-                        hkp://keyserver.ubuntu.com:80 \
-                        pgp.mit.edu) ; do \
-    gpg --batch --keyserver "${server}" --recv-keys 679F1EE92B19609DE816FDE81DB198F93525EC1A && break || : ; \
+    for server in $(shuf -e hkps://keys.openpgp.org \
+                            hkps://keyserver.ubuntu.com) ; do \
+        gpg --batch --keyserver "${server}" --recv-keys 679F1EE92B19609DE816FDE81DB198F93525EC1A && break || : ; \
     done; \
     gpg --verify /opt/sonar-scanner-cli.zip.asc /opt/sonar-scanner-cli.zip; \
     unzip sonar-scanner-cli.zip; \
@@ -43,6 +42,8 @@ RUN set -eux; \
     chmod -R 777 "${SRC_PATH}" "${SONAR_USER_HOME}";
 
 COPY --chown=scanner-cli:scanner-cli bin /usr/bin/
+
+VOLUME [ "/tmp/cacerts" ]
 
 WORKDIR ${SRC_PATH}
 

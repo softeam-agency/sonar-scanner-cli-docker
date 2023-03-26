@@ -11,9 +11,12 @@ jobs:
   v4:
     name: Dockerfile-Linting
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v2
     - name: Pull HaDoLint image
       run: docker pull hadolint/hadolint
     - name: Lint Dockerfile
       run: docker run --rm --interactive hadolint/hadolint hadolint --ignore DL3018 --ignore DL4001 --ignore DL3013 --ignore SC2015 - < ./4/Dockerfile
+    
